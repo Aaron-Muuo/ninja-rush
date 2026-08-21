@@ -1,16 +1,36 @@
-# React + Vite
+# Ninja Rush 🥷
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ninja Rush is a fast-paced, highly polished 2D endless-runner/action game. Inspired by the simplicity of the classic Chrome Dino game, Ninja Rush introduces deeper combat, combo mechanics, enemies, power-ups, progression systems, and unlockable content. The game is designed to be highly responsive, featuring a one-button contextual control system ("Easy to learn, difficult to master").
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React.js**: Used for UI components (Menus, HUD, Modals, State management).
+- **Tailwind CSS (v4)**: For rapid, clean, and responsive UI/UX styling. The Ninja character and game objects are rendered dynamically using Tailwind CSS!
+- **Vite**: Superfast frontend tooling and building.
+- **JavaScript (ES6+)**: Core game logic and architecture.
+- **HTML Canvas / DOM**: The game avoids a heavy canvas engine, opting for a highly optimized `requestAnimationFrame` loop that directly manipulates DOM refs for smooth 60fps physics, decoupled from React's render cycles.
+- **LocalStorage**: Used for persisting player progression (coins, levels, unlocks, high scores) without needing a backend database.
 
-## React Compiler
+## Core Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Contextual One-Button Gameplay**: Space/Click/Tap does everything—jump, double jump, wall jump, and attack!
+- **Endless Procedural World**: Gradually increasing difficulty and speed with multiple generated obstacle and enemy patterns.
+- **Combo & Perfect Dodge System**: Reward risky plays with slow-motion effects, score multipliers, and temporary invincibility.
+- **Progression**: Earn coins to unlock new skins, environments, and power-ups.
+- **Responsive**: Fully playable on desktop, tablet, and mobile devices.
 
-## Expanding the ESLint configuration
+## How to Play
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Run `npm run dev` to start the development server.
+4. Open the provided `localhost` URL in your browser.
+5. Hit **SPACE** or **Click/Tap** the screen to jump and dodge obstacles!
+
+## Roadmap (Development Phases)
+
+- **Phase 1**: Playable MVP (Movement, single obstacle, score, game over) ✅
+- **Phase 2**: Core Gameplay (Combat, combo, dodge, power-ups) ⏳
+- **Phase 3**: Content (Biomes, enemies, bosses)
+- **Phase 4**: Progression (Levels, unlocks, missions)
+- **Phase 5**: Polish (Particles, sound, performance)

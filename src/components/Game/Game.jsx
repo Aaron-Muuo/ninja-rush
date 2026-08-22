@@ -4,6 +4,7 @@ import Obstacle from './Obstacle';
 import Enemy from './Enemy';
 import Coin from './Coin';
 import PowerUp from './PowerUp';
+import Boss from './Boss';
 import { GAME_CONFIG } from '../../game/constants';
 import { useKeyboard } from '../../hooks/useKeyboard';
 
@@ -16,18 +17,27 @@ export default function Game({ onGameOver }) {
   // Game state
   const state = useRef({
     player: { x: 50, y: 0, velocityY: 0, isJumping: false, isDead: false, isAttacking: false, attackTimer: 0, hasShield: false, magnetTimer: 0, gliderTimer: 0 },
-    entities: [], // stores obstacles, enemies, coins, powerups
+    entities: [], 
+    clouds: [], 
+    mountains: [],
     speed: GAME_CONFIG.initialSpeed,
     score: 0,
     coins: 0,
-    combo: 0,
-    distance: 0,
+    combo: 1,
+    timeOfDay: 0,
     timeSinceLastSpawn: 0,
-    timeOfDay: 0, 
-    effects: [] // temporary visual effects like slashes
+    distance: 0,
+    isPaused: false,
+    currentBiome: 'forest',
+    daysPassed: 0,
+    nextBossDistance: 2000,
+    bossActive: false,
+    bossHp: 5,
+    bossAttackTimer: 0,
+    effects: []
   });
 
-  const [uiState, setUiState] = useState({ score: 0, coins: 0, combo: 0, magnetTimer: 0, gliderTimer: 0, isPaused: false });
+  const [uiState, setUiState] = useState({ score: 0, coins: 0, combo: 0, magnetTimer: 0, gliderTimer: 0, isPaused: false, biome: 'forest', bossActive: false, bossHp: 5 });
 
   const handleInput = () => {
     const st = state.current;
@@ -74,6 +84,26 @@ export default function Game({ onGameOver }) {
     st.player.isAttacking = true;
     st.player.attackTimer = GAME_CONFIG.attackCooldown;
     
+    // Check Boss Hit
+    if (st.bossActive) {
+      const canvasWidth = containerRef.current ? containerRef.current.clientWidth : window.innerWidth;
+      const bossX = canvasWidth - 150;
+      if (st.player.x + GAME_CONFIG.playerWidth + 200 > bossX) { // 200px reach for boss
+         hitSomething = true;
+         st.bossHp--;
+         st.effects.push({ x: bossX, y: 100, timer: 0.3, text: 'BAM!' });
+         st.score += 500;
+         if (st.bossHp <= 0) {
+            st.bossActive = false;
+            st.nextBossDistance = st.distance + 2000;
+            st.effects.push({ x: bossX, y: 100, timer: 1.0, text: 'BOSS DEFEATED!' });
+            st.score += 5000;
+            // Clear projectiles
+            st.entities = st.entities.filter(e => e.type !== 'obstacle');
+         }
+      }
+    }
+
     // Check if any enemy is in range
     let hitSomething = false;
     
@@ -84,14 +114,14 @@ export default function Game({ onGameOver }) {
       timer: 0.2 // duration of effect
     });
 
-    for (let i = 0; i < st.entities.length; i++) {
-      const ent = st.entities[i];
-      if (ent.type === 'enemy' && !ent.dead) {
-        const dist = ent.x - (st.player.x + GAME_CONFIG.playerWidth);
-        // If enemy is within attack range and roughly same height
-        if (dist > -20 && dist < GAME_CONFIG.attackRange && Math.abs(st.player.y - ent.y) < 60) {
-          ent.dead = true;
-          hitSomething = true;
+      for (let i = 0; i < st.entities.length; i++) {
+        const ent = st.entities[i];
+        if (ent.type.startsWith('enemy') && !ent.dead) {
+          const dist = ent.x - (st.player.x + GAME_CONFIG.playerWidth);
+          // If enemy is within attack range and roughly same height
+          if (dist > -20 && dist < GAME_CONFIG.attackRange && Math.abs(st.player.y - ent.y) < 60) {
+            ent.dead = true;
+            hitSomething = true;
           st.combo += 1;
           st.score += 50 * st.combo;
           st.player.velocityY = Math.max(st.player.velocityY, 300); // small bounce
@@ -108,8 +138,12 @@ export default function Game({ onGameOver }) {
     const rand = Math.random();
     let type = 'obstacle';
     if (rand < 0.25) type = 'obstacle';
-    else if (rand < 0.5) type = 'enemy';
-    else if (rand < 0.9) type = 'coin'; // 40% chance of coins
+    else if (rand < 0.5) {
+       const eRand = Math.random();
+       if (eRand < 0.33) type = 'enemy-goblin';
+       else if (eRand < 0.66) type = 'enemy-bat';
+       else type = 'enemy-skeleton';
+    } else if (rand < 0.9) type = 'coin'; // 40% chance of coins
     else {
       const pRand = Math.random();
       if (pRand < 0.33) type = 'powerup-shield';
@@ -124,12 +158,13 @@ export default function Game({ onGameOver }) {
     for (let i = 0; i < count; i++) {
         let yPos = baseHeight;
         if (type === 'powerup-glider') yPos = 120; // Glider only in air
+        if (type === 'enemy-bat') yPos = 120; // Bat flies
         
         let width = GAME_CONFIG.obstacleWidth;
         let height = GAME_CONFIG.obstacleHeight;
         if (type === 'coin') { width = GAME_CONFIG.coinSize; height = GAME_CONFIG.coinSize; }
         if (type.startsWith('powerup')) { width = GAME_CONFIG.powerUpSize; height = GAME_CONFIG.powerUpSize; }
-        if (type === 'enemy') { width = GAME_CONFIG.enemyWidth; height = GAME_CONFIG.enemyHeight; }
+        if (type.startsWith('enemy')) { width = 40; height = 50; }
 
         state.current.entities.push({
           id: Math.random().toString(36).substr(2, 9),
@@ -224,6 +259,17 @@ export default function Game({ onGameOver }) {
       st.distance += moveDist;
       st.score += (moveDist / 10);
       
+      const previousTime = st.timeOfDay;
+      st.timeOfDay = (st.timeOfDay + dt) % 40;
+      
+      if (previousTime > 39 && st.timeOfDay < 1) {
+         st.daysPassed = (st.daysPassed || 0) + 1;
+      }
+      
+      const biomes = ['forest', 'village', 'volcano', 'city', 'mountain'];
+      const biomeIndex = (st.daysPassed || 0) % biomes.length;
+      st.currentBiome = biomes[biomeIndex];
+      
       // Update UI state occasionally
       if (Math.floor(time / 100) % 2 === 0) {
         setUiState({ 
@@ -232,18 +278,59 @@ export default function Game({ onGameOver }) {
             combo: st.combo, 
             isPaused: st.isPaused,
             magnetTimer: Math.max(0, st.player.magnetTimer),
-            gliderTimer: Math.max(0, st.player.gliderTimer)
+            gliderTimer: Math.max(0, st.player.gliderTimer),
+            biome: st.currentBiome,
+            bossActive: st.bossActive,
+            bossHp: st.bossHp
         });
+      }
+
+      if (st.distance > st.nextBossDistance && !st.bossActive) {
+         st.bossActive = true;
+         st.bossHp = 5;
       }
 
       // Spawning
       st.timeSinceLastSpawn += dt;
       const spawnInterval = Math.max(0.8, 800 / st.speed) + Math.random();
       
-      if (st.timeSinceLastSpawn > spawnInterval) {
-        spawnEntity(canvasWidth);
-        st.timeSinceLastSpawn = 0;
+      if (st.bossActive) {
+         st.bossAttackTimer -= dt;
+         if (st.bossAttackTimer <= 0) {
+            st.bossAttackTimer = 1.5;
+            st.entities.push({
+               id: Math.random().toString(36).substr(2, 9),
+               type: 'obstacle',
+               x: canvasWidth - 100,
+               y: Math.random() > 0.5 ? 60 : 0,
+               width: GAME_CONFIG.obstacleWidth,
+               height: GAME_CONFIG.obstacleHeight,
+               dead: false,
+               dodged: false
+            });
+            setUiState(prev => ({ ...prev, _tick: Date.now() }));
+         }
+      } else {
+         if (st.timeSinceLastSpawn > spawnInterval) {
+           spawnEntity(canvasWidth);
+           st.timeSinceLastSpawn = 0;
+           setUiState(prev => ({ ...prev, _tick: Date.now() }));
+         }
       }
+      
+      // Procedural Backgrounds Spawning
+      if (Math.random() < 0.02) {
+         st.clouds.push({ id: Math.random().toString(36).substr(2, 9), x: canvasWidth, y: Math.random() * 200 + 50, speed: Math.random() * 20 + 10, width: Math.random() * 100 + 50 });
+      }
+      if (Math.random() < 0.01) {
+         st.mountains.push({ id: Math.random().toString(36).substr(2, 9), x: canvasWidth, type: Math.random() > 0.5 ? 1 : 2 });
+      }
+
+      // Update Backgrounds
+      st.clouds.forEach(c => c.x -= (c.speed + (st.speed * 0.1)) * dt);
+      st.clouds = st.clouds.filter(c => c.x > -200);
+      st.mountains.forEach(m => m.x -= (st.speed * 0.3) * dt); // Parallax effect
+      st.mountains = st.mountains.filter(m => m.x > -400);
 
       // Update Entities & Collisions
       for (let i = st.entities.length - 1; i >= 0; i--) {
@@ -263,7 +350,7 @@ export default function Game({ onGameOver }) {
         ent.x -= moveDist;
 
         // Perfect Dodge check
-        if (!ent.dead && !ent.dodged && (ent.type === 'obstacle' || ent.type === 'enemy') && ent.x < st.player.x) {
+        if (!ent.dead && !ent.dodged && (ent.type === 'obstacle' || ent.type.startsWith('enemy')) && ent.x < st.player.x) {
           ent.dodged = true;
           // if we passed it and distance was very close (within 20px vertically)
           if (Math.abs(st.player.y - ent.height) < 20 || Math.abs((st.player.y + GAME_CONFIG.playerHeight) - ent.y) < 20) {
@@ -281,13 +368,13 @@ export default function Game({ onGameOver }) {
             st.coins += 1;
             st.combo += 1;
             ent.dead = true;
-          } else if (ent.type.startsWith('powerup')) {
-            if (ent.type === 'powerup-shield') st.player.hasShield = true;
-            if (ent.type === 'powerup-magnet') st.player.magnetTimer = 10; // 10 seconds
-            if (ent.type === 'powerup-glider') st.player.gliderTimer = 5; // 5 seconds
-            ent.dead = true;
-          } else if (ent.type === 'obstacle' || ent.type === 'enemy') {
-            if (st.player.hasShield) {
+            } else if (ent.type.startsWith('powerup')) {
+              if (ent.type === 'powerup-shield') st.player.hasShield = true;
+              if (ent.type === 'powerup-magnet') st.player.magnetTimer = 10; // 10 seconds
+              if (ent.type === 'powerup-glider') st.player.gliderTimer = 5; // 5 seconds
+              ent.dead = true;
+            } else if (ent.type === 'obstacle' || ent.type.startsWith('enemy')) {
+              if (st.player.hasShield) {
                st.player.hasShield = false;
                ent.dead = true;
                st.effects.push({ x: st.player.x, y: st.player.y + 30, timer: 0.5, text: 'SHIELD BROKEN' });
@@ -303,8 +390,6 @@ export default function Game({ onGameOver }) {
           st.entities.splice(i, 1);
         }
       }
-      
-      st.timeOfDay = (st.timeOfDay + dt) % 60;
     }
 
     updateDOM();
@@ -324,19 +409,31 @@ export default function Game({ onGameOver }) {
     const stars = document.getElementById('stars');
     
     if (sky && sun && moon && stars) {
-      const isDay = st.timeOfDay < 30;
-      const dayProgress = isDay ? (st.timeOfDay / 30) : 0;
-      const nightProgress = !isDay ? ((st.timeOfDay - 30) / 30) : 0;
+      const isDay = st.timeOfDay < 20;
+      const dayProgress = isDay ? (st.timeOfDay / 20) : 0;
+      const nightProgress = !isDay ? ((st.timeOfDay - 20) / 20) : 0;
+      
+      const bColors = {
+        forest: ['#87CEEB', '#E0F6FF'],
+        village: ['#FFDAB9', '#FFE4B5'],
+        volcano: ['#8B0000', '#FF4500'],
+        city: ['#708090', '#B0C4DE'],
+        mountain: ['#B0E0E6', '#F0F8FF']
+      };
+      const skyDay = bColors[st.currentBiome] || bColors.forest;
+      
+      const parallaxOffset = (st.distance * 0.05) % window.innerWidth;
+      stars.style.backgroundPosition = `-${parallaxOffset}px 0`;
       
       if (isDay) {
-        sky.style.background = `linear-gradient(to bottom, #87CEEB, #E0F6FF)`;
-        sun.style.transform = `rotate(${dayProgress * 180}deg) translateX(-40vw) rotate(-${dayProgress * 180}deg)`;
+        sky.style.background = `linear-gradient(to bottom, ${skyDay[0]}, ${skyDay[1]})`;
+        sun.style.transform = `rotate(${dayProgress * 180}deg) translateX(calc(-40vw - ${parallaxOffset}px)) rotate(-${dayProgress * 180}deg)`;
         sun.style.opacity = dayProgress < 0.1 || dayProgress > 0.9 ? 0.5 : 1;
         moon.style.opacity = 0;
         stars.style.opacity = 0;
       } else {
         sky.style.background = `linear-gradient(to bottom, #0B1021, #1B2735)`;
-        moon.style.transform = `rotate(${nightProgress * 180}deg) translateX(-40vw) rotate(-${nightProgress * 180}deg)`;
+        moon.style.transform = `rotate(${nightProgress * 180}deg) translateX(calc(-40vw - ${parallaxOffset}px)) rotate(-${nightProgress * 180}deg)`;
         moon.style.opacity = nightProgress < 0.1 || nightProgress > 0.9 ? 0.5 : 1;
         sun.style.opacity = 0;
         stars.style.opacity = 1;
@@ -379,6 +476,35 @@ export default function Game({ onGameOver }) {
         }
       }
     }
+    
+    // Smooth scrolling updates bypass React render
+    st.entities.forEach(ent => {
+       const el = document.getElementById(`ent-${ent.id}`);
+       if (el) {
+          el.style.transform = `translate(${ent.x}px, -${ent.y}px)`;
+          el.style.opacity = ent.dead ? 0.3 : 1;
+       }
+    });
+    
+    st.clouds.forEach(c => {
+       const el = document.getElementById(`cloud-${c.id}`);
+       if (el) el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+    });
+    
+    st.mountains.forEach(m => {
+       const el = document.getElementById(`mtn-${m.id}`);
+       if (el) el.style.transform = `translateX(${m.x}px)`;
+    });
+    
+    const ground = document.getElementById('ground');
+    if (ground) {
+       ground.style.backgroundPositionX = `-${st.distance}px`;
+    }
+    
+    const boss = document.getElementById('boss-container');
+    if (boss) {
+       boss.style.transform = `translateY(-${Math.sin(Date.now() / 300) * 20 + 20}px)`;
+    }
   };
 
   useEffect(() => {
@@ -416,10 +542,20 @@ export default function Game({ onGameOver }) {
     };
   }, []);
 
+  // Biome mapping
+  const biomeColors = {
+    forest: { skyDay: ['#87CEEB', '#E0F6FF'], ground: 'bg-green-800', border: 'border-green-700' },
+    village: { skyDay: ['#FFDAB9', '#FFE4B5'], ground: 'bg-yellow-800', border: 'border-yellow-700' },
+    volcano: { skyDay: ['#8B0000', '#FF4500'], ground: 'bg-red-950', border: 'border-red-900' },
+    city: { skyDay: ['#708090', '#B0C4DE'], ground: 'bg-gray-800', border: 'border-gray-700' },
+    mountain: { skyDay: ['#B0E0E6', '#F0F8FF'], ground: 'bg-slate-300', border: 'border-slate-400' }
+  };
+  const currentBiomeColors = biomeColors[uiState.biome] || biomeColors.forest;
+
   return (
     <div className="relative w-full h-full overflow-hidden bg-gray-900" ref={containerRef}>
       {/* Background Skybox */}
-      <div id="sky-background" className="absolute top-0 left-0 w-full h-full transition-colors duration-1000 bg-gradient-to-b from-blue-400 to-blue-100"></div>
+      <div id="sky-background" className="absolute top-0 left-0 w-full h-full transition-colors duration-1000" style={{ background: `linear-gradient(to bottom, ${currentBiomeColors.skyDay[0]}, ${currentBiomeColors.skyDay[1]})` }}></div>
       
       {/* Stars Layer */}
       <div id="stars" className="absolute top-0 left-0 w-full h-full opacity-0 transition-opacity duration-1000 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIxIiBmaWxsPSJ3aGl0ZSIvPgogIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjIwIiByPSIyIiBmaWxsPSJ3aGl0ZSIvPgogIDxjaXJjbGUgY3g9IjI1MCIgY3k9IjgwaCIgcj0iMSIgZmlsbD0id2hpdGUiLz4KICA8Y2lyY2xlIGN4PSIzNTAiIGN5PSIxNTAiIHI9IjEuNSIgZmlsbD0id2hpdGUiLz4KICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjE4MCIgcj0iMSIgZmlsbD0id2hpdGUiLz4KICA8Y2lyY2xlIGN4PSIyMjAiIGN5PSIyMjAiIHI9IjIiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==')]"></div>
@@ -431,6 +567,20 @@ export default function Game({ onGameOver }) {
           <div className="absolute top-3 right-4 w-6 h-6 bg-gray-300 rounded-full opacity-40"></div>
           <div className="absolute bottom-6 left-3 w-4 h-4 bg-gray-300 rounded-full opacity-40"></div>
         </div>
+      </div>
+      
+      {/* Procedural Clouds */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-100 z-0">
+        {state.current.clouds.map((c) => (
+           <div id={`cloud-${c.id}`} key={`cloud-${c.id}`} className="absolute bg-white rounded-full opacity-90 shadow-lg blur-sm" style={{ left: 0, top: 0, width: `${c.width}px`, height: `${c.width/3}px`, transform: `translate(${c.x}px, ${c.y}px)` }}></div>
+        ))}
+      </div>
+      
+      {/* Procedural Mountains */}
+      <div className="absolute w-full h-full pointer-events-none" style={{ bottom: `${GAME_CONFIG.groundHeight}px` }}>
+        {state.current.mountains.map((m) => (
+           <div id={`mtn-${m.id}`} key={`mtn-${m.id}`} className="absolute bottom-0 border-b-[150px] border-l-[100px] border-r-[100px] border-l-transparent border-r-transparent opacity-40" style={{ left: 0, transform: `translateX(${m.x}px)`, borderBottomColor: m.type === 1 ? '#475569' : '#334155' }}></div>
+        ))}
       </div>
       
       {/* HUD */}
@@ -478,10 +628,15 @@ export default function Game({ onGameOver }) {
       
       {/* Ground */}
       <div 
-        className="absolute bottom-0 left-0 w-full bg-gray-800 border-t-4 border-gray-700"
-        style={{ height: `${GAME_CONFIG.groundHeight}px` }}
+        id="ground"
+        className={`absolute bottom-0 left-0 w-full border-t-4 transition-colors duration-1000 ${currentBiomeColors.ground} ${currentBiomeColors.border}`}
+        style={{ 
+          height: `${GAME_CONFIG.groundHeight}px`,
+          backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 80px)`,
+          backgroundPositionX: '0px'
+        }}
       >
-        <div className="w-full h-2 bg-gray-900 opacity-30 mt-2"></div>
+        <div className="w-full h-2 bg-black opacity-30 mt-2"></div>
       </div>
 
       {/* Game World layer */}
@@ -496,14 +651,21 @@ export default function Game({ onGameOver }) {
 
         {/* Entities */}
         {state.current.entities.map(ent => (
-          <div key={ent.id} className="absolute bottom-0 left-0 transition-transform duration-75" style={{transform: `translate(${ent.x}px, -${ent.y}px)`, opacity: ent.dead ? 0.3 : 1}}>
+          <div id={`ent-${ent.id}`} key={ent.id} className="absolute bottom-0 left-0" style={{transform: `translate(${ent.x}px, -${ent.y}px)`, opacity: ent.dead ? 0.3 : 1}}>
              {ent.type === 'obstacle' && <Obstacle />}
-             {ent.type === 'enemy' && <Enemy type="goblin" />}
+             {ent.type.startsWith('enemy') && <Enemy type={ent.type.split('-')[1]} />}
              {ent.type === 'coin' && <Coin />}
              {ent.type.startsWith('powerup') && <PowerUp type={ent.type.split('-')[1]} />}
           </div>
         ))}
 
+        {/* Boss */}
+        {uiState.bossActive && (
+           <div id="boss-container" className="absolute bottom-0" style={{ right: '50px' }}>
+              <Boss hp={uiState.bossHp} />
+           </div>
+        )}
+        
         {/* Slash and Text Effects */}
         {state.current.effects.map((eff, i) => (
            eff.text ? (

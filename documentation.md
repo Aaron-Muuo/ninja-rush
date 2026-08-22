@@ -22,6 +22,6 @@ This document contains architectural decisions and documentation for the Ninja R
   - Collision detection uses AABB (Axis-Aligned Bounding Box) logic adapted for a side-scrolling perspective.
   - Integrated a dynamic speed multiplier to make the game harder as the score increases.
 - **Phase 2**: Core Gameplay (In Progress - Combat, combo, dodge, power-ups)
-- **Phase 3**: Content (Biomes, enemies, bosses)
+- **Phase 3**: Content (Biomes, day/night dynamic skybox with sun/moon, random procedural clouds and interactive scrolling terrain, enemies, bosses)
 - **Phase 4**: Progression (Levels, unlocks, missions)
-- **Phase 5**: Polish (Particles, sound, performance)
+- **Phase 5**: Polish (Particles, sound, performance, Muuo Creatives branding badge)

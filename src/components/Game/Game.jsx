@@ -18,6 +18,7 @@ export default function Game({ onGameOver }) {
     score: 0,
     distance: 0,
     timeSinceLastObstacle: 0,
+    timeOfDay: 0, // 0 to 60 seconds cycle
   });
 
   // UI state for score display
@@ -136,6 +137,9 @@ export default function Game({ onGameOver }) {
           st.obstacles.splice(i, 1);
         }
       }
+      
+      // Update Day/Night Cycle (60s full cycle)
+      st.timeOfDay = (st.timeOfDay + dt) % 60;
     }
 
     // Force re-render of just the canvas elements by updating dom nodes directly
@@ -149,6 +153,35 @@ export default function Game({ onGameOver }) {
     if (!containerRef.current) return;
     
     const p = state.current.player;
+    const st = state.current;
+    
+    // Day/Night Visuals
+    // 0-30s: Day (Sun), 30-60s: Night (Moon)
+    const sky = document.getElementById('sky-background');
+    const sun = document.getElementById('sun');
+    const moon = document.getElementById('moon');
+    
+    if (sky && sun && moon) {
+      const cycleProgress = st.timeOfDay / 60; // 0 to 1
+      const isDay = st.timeOfDay < 30;
+      
+      // Calculate arc position (0 to 180 degrees over 30s)
+      const dayProgress = isDay ? (st.timeOfDay / 30) : 0;
+      const nightProgress = !isDay ? ((st.timeOfDay - 30) / 30) : 0;
+      
+      if (isDay) {
+        sky.style.background = `linear-gradient(to bottom, #87CEEB, #E0F6FF)`; // Light blue
+        sun.style.transform = `rotate(${dayProgress * 180}deg) translateX(-40vw) rotate(-${dayProgress * 180}deg)`;
+        sun.style.opacity = dayProgress < 0.1 || dayProgress > 0.9 ? 0.5 : 1;
+        moon.style.opacity = 0;
+      } else {
+        sky.style.background = `linear-gradient(to bottom, #0B1021, #1B2735)`; // Dark blue/black
+        moon.style.transform = `rotate(${nightProgress * 180}deg) translateX(-40vw) rotate(-${nightProgress * 180}deg)`;
+        moon.style.opacity = nightProgress < 0.1 || nightProgress > 0.9 ? 0.5 : 1;
+        sun.style.opacity = 0;
+      }
+    }
+
     const playerEl = document.getElementById('player-ninja');
     if (playerEl) {
       playerEl.style.transform = `translate(${p.x}px, -${p.y}px)`;
@@ -207,8 +240,17 @@ export default function Game({ onGameOver }) {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-gray-900" ref={containerRef}>
-      {/* Background (Parallax placeholder) */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900 to-gray-900"></div>
+      {/* Background Skybox */}
+      <div id="sky-background" className="absolute top-0 left-0 w-full h-full transition-colors duration-1000 bg-gradient-to-b from-blue-400 to-blue-100"></div>
+      
+      {/* Celestial Bodies Container (Centered at bottom of screen to create an arc) */}
+      <div className="absolute w-full flex justify-center" style={{ bottom: '0px' }}>
+        <div id="sun" className="absolute w-24 h-24 bg-yellow-300 rounded-full shadow-[0_0_50px_rgba(253,224,71,0.8)] transition-opacity" style={{ bottom: '-12vw', opacity: 0 }}></div>
+        <div id="moon" className="absolute w-20 h-20 bg-gray-200 rounded-full shadow-[0_0_30px_rgba(229,231,235,0.6)] transition-opacity" style={{ bottom: '-10vw', opacity: 0 }}>
+          <div className="absolute top-3 right-4 w-6 h-6 bg-gray-300 rounded-full opacity-40"></div>
+          <div className="absolute bottom-6 left-3 w-4 h-4 bg-gray-300 rounded-full opacity-40"></div>
+        </div>
+      </div>
       
       {/* HUD */}
       <div className="absolute top-4 left-6 text-2xl font-bold font-mono text-white drop-shadow-md z-50">

@@ -31,6 +31,6 @@ Ninja Rush is a fast-paced, highly polished 2D endless-runner/action game. Inspi
 
 - **Phase 1**: Playable MVP (Movement, single obstacle, score, game over) ✅
 - **Phase 2**: Core Gameplay (Combat, combo, dodge, power-ups) ⏳
-- **Phase 3**: Content (Biomes, enemies, bosses)
+- **Phase 3**: Content (Biomes, enemies, bosses, day/night cycle, dynamic clouds & terrain)
 - **Phase 4**: Progression (Levels, unlocks, missions)
-- **Phase 5**: Polish (Particles, sound, performance)
+- **Phase 5**: Polish (Particles, sound, performance, Muuo Creatives branding)

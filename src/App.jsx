@@ -31,9 +31,18 @@ function App() {
             PLAY
           </button>
           
-          <p className="text-gray-400 mt-6 text-sm">
+          <p className="text-gray-400 mt-6 text-sm mb-4">
             Press SPACE or TAP to jump
           </p>
+          
+          <a 
+            href="https://muuocreatives.co.ke" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block mt-4 px-4 py-2 bg-gray-900 border border-gray-700 rounded-full text-xs text-gray-400 hover:text-cyan-400 hover:border-cyan-500 transition-colors cursor-pointer"
+          >
+            Crafted by <span className="text-cyan-400 font-bold">Muuo Creatives</span>
+          </a>
         </div>
       )}
 

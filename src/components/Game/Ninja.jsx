@@ -28,8 +28,8 @@ export default function Ninja() {
       <div className="leg-l absolute top-13 w-2.5 h-5 bg-gray-800 left-2 rounded-full origin-top rotate-12"></div>
       <div className="leg-r absolute top-13 w-2.5 h-5 bg-gray-800 left-5.5 rounded-full origin-top -rotate-12"></div>
       
-      {/* Sword on back */}
-      <div className="absolute top-1 w-1.5 h-10 bg-gray-300 left-0 -rotate-45 z-0 border border-gray-500 rounded-sm"></div>
+      {/* Sword on back or swinging */}
+      <div className="sword-arm absolute top-2 w-1.5 h-12 bg-gray-300 left-4 origin-bottom -rotate-45 z-20 border border-gray-500 rounded-sm transition-transform duration-100"></div>
     </div>
   );
 }

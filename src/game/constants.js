@@ -8,5 +8,11 @@ export const GAME_CONFIG = {
   groundHeight: 100, // Pixels from bottom
   obstacleWidth: 40,
   obstacleHeight: 50,
+  enemyWidth: 40,
+  enemyHeight: 50,
+  coinSize: 30,
+  powerUpSize: 35,
   speedIncreaseRate: 5, // Speed increase per second
+  attackCooldown: 0.5, // seconds
+  attackRange: 80, // pixels
 };

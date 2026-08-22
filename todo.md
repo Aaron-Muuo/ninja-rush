@@ -19,13 +19,13 @@
 - [ ] Add SEO tags (author, title) in index.html
 - [ ] Add Developer Easter Egg console log splash
 
-## Phase 2 - Core Gameplay
-- [ ] Enemies implementation
-- [ ] Sword attack mechanic
-- [ ] Coins placement and collection
-- [ ] Combo system
-- [ ] Perfect dodge mechanic
-- [ ] Power-ups (Shield, Magnet, etc.)
+## Phase 2 - Core Gameplay (Completed)
+- [x] Enemies implementation
+- [x] Sword attack mechanic
+- [x] Coins placement and collection
+- [x] Combo system
+- [x] Perfect dodge mechanic
+- [x] Power-ups (Shield, Magnet, etc.)
 
 ## Phase 3 - Content
 - [ ] Multiple environments (Forest, Village, Volcano, City, Mountain)

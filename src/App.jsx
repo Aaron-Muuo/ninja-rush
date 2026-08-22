@@ -57,25 +57,34 @@ function App() {
       )}
 
       {gameState === 'gameover' && (
-        <div className="text-center w-full max-w-md bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-2xl z-50">
-          <h2 className="text-5xl font-bold text-red-500 mb-2 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">GAME OVER</h2>
-          <div className="bg-gray-900 rounded p-4 mb-8 mt-6">
-            <p className="text-gray-400 text-sm mb-1">SCORE</p>
-            <p className="text-4xl font-mono text-cyan-400">{score.toString().padStart(5, '0')}</p>
+        <>
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0 opacity-40"
+            style={{ backgroundImage: "url('/images/splash.png')" }}
+          ></div>
+          <div className="text-center w-full max-w-md bg-transparent p-8 border-2 border-white backdrop-blur-md z-10 rounded-none">
+            <h2 className="text-6xl text-red-500 mb-2 mt-[-5px]" style={{ fontFamily: 'cursive' }}>
+              Game Over
+            </h2>
+            <div className="bg-gray-900/80 rounded-none border border-gray-600 p-4 mb-8 mt-6">
+              <p className="text-gray-300 text-sm mb-1 uppercase tracking-widest font-sans">Final Score</p>
+              <p className="text-5xl font-black text-white">{score.toString().padStart(5, '0')}</p>
+            </div>
+            
+            <button 
+              className="animated-border-btn w-full mb-4 px-8 py-4 text-2xl font-bold text-white transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              onClick={() => setGameState('playing')}
+            >
+              PLAY AGAIN
+            </button>
+            <button 
+              className="w-full px-6 py-3 bg-transparent border-2 border-gray-500 hover:border-white text-gray-300 hover:text-white font-bold transition-all cursor-pointer"
+              onClick={() => setGameState('menu')}
+            >
+              MAIN MENU
+            </button>
           </div>
-          <button 
-            className="w-full mb-3 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-900 text-xl font-bold rounded-lg transition-colors shadow-[0_0_10px_rgba(34,211,238,0.3)] cursor-pointer"
-            onClick={() => setGameState('playing')}
-          >
-            PLAY AGAIN
-          </button>
-          <button 
-            className="w-full px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors cursor-pointer"
-            onClick={() => setGameState('menu')}
-          >
-            MAIN MENU
-          </button>
-        </div>
+        </>
       )}
     </div>
   );

@@ -30,5 +30,9 @@ This document contains architectural decisions and documentation for the Ninja R
   - Procedural background systems updated for 60FPS smooth parallax scrolling, including clouds, mountain ranges, and starry sky.
   - Fixed DOM manipulation pipeline to bypass React for all entity transform animations, resulting in buttery smooth scrolling.
   - Implemented multiple enemy variants (Goblins, Bats, Skeletons) and a dynamic Boss Fight encounter every 2000 distance.
-- **Phase 4**: Progression (Levels, unlocks, missions)
+- **Phase 4: Progression (Completed)**
+  - LocalStorage wrapper to save user XP, Coins, Unlocked Skins, and Mission progress.
+  - Introduced `SKINS` arrays and dynamic Ninja coloring via `skinId` props (e.g. Crimson Assassin, Golden Master, Shadow Weaver).
+  - XP and Leveling system implemented (Score directly contributes to XP).
+  - UI additions: Main Menu shows overall Level, XP, and Banked Coins. Two new UI tabs added for Shop (Skins) and Missions. Game Over screen now shows Missions newly completed.
 - **Phase 5**: Polish (Particles, sound, performance, Muuo Creatives branding badge)

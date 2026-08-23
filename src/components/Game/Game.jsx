@@ -8,7 +8,7 @@ import Boss from './Boss';
 import { GAME_CONFIG } from '../../game/constants';
 import { useKeyboard } from '../../hooks/useKeyboard';
 
-export default function Game({ onGameOver }) {
+export default function Game({ onGameOver, currentSkinId }) {
   const containerRef = useRef(null);
   const keys = useKeyboard();
   const requestRef = useRef();
@@ -380,7 +380,7 @@ export default function Game({ onGameOver }) {
                st.effects.push({ x: st.player.x, y: st.player.y + 30, timer: 0.5, text: 'SHIELD BROKEN' });
             } else {
                st.player.isDead = true;
-               setTimeout(() => onGameOver(Math.floor(st.score)), 1500);
+               setTimeout(() => onGameOver(Math.floor(st.score), st.coins), 1500);
             }
           }
         }
@@ -646,7 +646,7 @@ export default function Game({ onGameOver }) {
       >
         {/* Player */}
         <div id="player-ninja" className="absolute bottom-0 left-0 transition-transform duration-75" style={{width: '40px', height: '60px', transform: 'translate(50px, 0px)'}}>
-          <Ninja />
+          <Ninja skinId={currentSkinId} />
         </div>
 
         {/* Entities */}

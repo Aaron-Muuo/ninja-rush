@@ -35,12 +35,12 @@
 - [x] Boss fights
 - [x] Ninja Mode (combo reward)
 
-## Phase 4 - Progression
-- [ ] XP and Leveling system
-- [ ] Missions system
-- [ ] Unlockable ninjas (cosmetic)
-- [ ] Unlockable environments
-- [ ] Local leaderboard via LocalStorage
+## Phase 4: Progression (COMPLETED)
+- [x] XP and Leveling system
+- [x] Unlockable items/skins using coins
+- [x] Simple mission/achievement system (cosmetic)
+- [x] Unlockable environments
+- [x] Local leaderboard via LocalStorage
 
 ## Phase 5 - Polish
 - [ ] CSS/DOM Particle effects

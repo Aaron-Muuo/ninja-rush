@@ -41,7 +41,19 @@ export default function Game({ onGameOver, currentSkinId }) {
 
   const handleInput = () => {
     const st = state.current;
-    if (st.player.isDead || st.isPaused) return;
+    if (st.player.isDead) return;
+    
+    // Pause with Escape
+    const escActive = keys['Escape'];
+    const escJustPressed = escActive && !st.lastEscActive;
+    st.lastEscActive = escActive;
+
+    if (escJustPressed) {
+      st.isPaused = !st.isPaused;
+      setUiState(prev => ({ ...prev, isPaused: st.isPaused, _tick: Date.now() }));
+    }
+
+    if (st.isPaused) return;
     
     // Jump with Up Arrow
     const upActive = keys['ArrowUp'];
@@ -58,17 +70,6 @@ export default function Game({ onGameOver, currentSkinId }) {
     const spaceJustPressed = spaceActive && !st.lastSpaceActive;
     st.lastSpaceActive = spaceActive;
 
-    // Pause with Escape
-    const escActive = keys['Escape'];
-    const escJustPressed = escActive && !st.lastEscActive;
-    st.lastEscActive = escActive;
-
-    if (escJustPressed) {
-      st.isPaused = !st.isPaused;
-      setUiState(prev => ({ ...prev, isPaused: st.isPaused }));
-      return;
-    }
-
     if (upJustPressed && !st.player.isJumping) {
       st.player.velocityY = GAME_CONFIG.jumpForce;
       st.player.isJumping = true;
@@ -84,12 +85,25 @@ export default function Game({ onGameOver, currentSkinId }) {
     st.player.isAttacking = true;
     st.player.attackTimer = GAME_CONFIG.attackCooldown;
     
-    // Check Boss Hit
+    // Spawn a slash wave projectile
+    st.entities.push({
+       id: Math.random().toString(36).substr(2, 9),
+       type: 'player-projectile',
+       x: st.player.x + GAME_CONFIG.playerWidth,
+       y: st.player.y + 20,
+       width: 40,
+       height: 10,
+       dead: false,
+       dodged: true
+    });
+    // Force React render for new element
+    setUiState(prev => ({ ...prev, _tick: Date.now() }));
+    
+    // Check Boss Hit (Melee fallback)
     if (st.bossActive) {
       const canvasWidth = containerRef.current ? containerRef.current.clientWidth : window.innerWidth;
       const bossX = canvasWidth - 150;
       if (st.player.x + GAME_CONFIG.playerWidth + 200 > bossX) { // 200px reach for boss
-         hitSomething = true;
          st.bossHp--;
          st.effects.push({ x: bossX, y: 100, timer: 0.3, text: 'BAM!' });
          st.score += 500;
@@ -135,30 +149,36 @@ export default function Game({ onGameOver, currentSkinId }) {
   };
 
   const spawnEntity = (canvasWidth) => {
-    const rand = Math.random();
-    let type = 'obstacle';
-    if (rand < 0.25) type = 'obstacle';
-    else if (rand < 0.5) {
-       const eRand = Math.random();
-       if (eRand < 0.33) type = 'enemy-goblin';
-       else if (eRand < 0.66) type = 'enemy-bat';
-       else type = 'enemy-skeleton';
-    } else if (rand < 0.9) type = 'coin'; // 40% chance of coins
-    else {
-      const pRand = Math.random();
-      if (pRand < 0.33) type = 'powerup-shield';
-      else if (pRand < 0.66) type = 'powerup-magnet';
-      else type = 'powerup-glider';
+    const st = state.current;
+    if (!st.spawnBag || st.spawnBag.length === 0) {
+      st.spawnBag = [
+        'obstacle', 'obstacle', 'obstacle',
+        'enemy-goblin', 'enemy-bat', 'enemy-skeleton',
+        'coin', 'coin', 'coin', 'coin',
+        'powerup-shield', 'powerup-magnet', 'powerup-glider'
+      ];
+      st.spawnBag.sort(() => Math.random() - 0.5);
     }
-    
+    const type = st.spawnBag.pop();
+
     // Spawn multiple if coin
-    const count = type === 'coin' ? Math.floor(Math.random() * 4) + 2 : 1; 
-    const baseHeight = type === 'coin' || type.startsWith('powerup') ? (Math.random() > 0.5 ? 120 : 0) : 0;
+    const count = type === 'coin' ? Math.floor(Math.random() * 8) + 6 : 1; // 6 to 13 coins
     
-    for (let i = 0; i < count; i++) {
-        let yPos = baseHeight;
+    for (let i=0; i<count; i++) {
+        let yPos = 20; // ground level
         if (type === 'powerup-glider') yPos = 120; // Glider only in air
         if (type === 'enemy-bat') yPos = 120; // Bat flies
+        
+        let coinYOffset = 0;
+        if (type === 'coin') {
+           // Create a nice arc for coins
+           coinYOffset = Math.sin((i / count) * Math.PI) * 80;
+           // 50% chance the coin arc is in the air
+           if (Math.random() < 0.5 || st.lastCoinInAir) {
+              yPos = 120;
+              st.lastCoinInAir = true; // keep it in air for this batch
+           }
+        }
         
         let width = GAME_CONFIG.obstacleWidth;
         let height = GAME_CONFIG.obstacleHeight;
@@ -170,12 +190,16 @@ export default function Game({ onGameOver, currentSkinId }) {
           id: Math.random().toString(36).substr(2, 9),
           type,
           x: canvasWidth + (i * 45), // spaced out
-          y: yPos,
+          y: yPos + coinYOffset,
           width,
           height,
           dead: false,
           dodged: false
         });
+    }
+    
+    if (type === 'coin') {
+       st.lastCoinInAir = false; // reset for next spawn
     }
   };
 
@@ -292,7 +316,7 @@ export default function Game({ onGameOver, currentSkinId }) {
 
       // Spawning
       st.timeSinceLastSpawn += dt;
-      const spawnInterval = Math.max(0.8, 800 / st.speed) + Math.random();
+      const spawnInterval = Math.max(0.4, 400 / st.speed) + (Math.random() * 0.5);
       
       if (st.bossActive) {
          st.bossAttackTimer -= dt;
@@ -332,11 +356,37 @@ export default function Game({ onGameOver, currentSkinId }) {
       st.mountains.forEach(m => m.x -= (st.speed * 0.3) * dt); // Parallax effect
       st.mountains = st.mountains.filter(m => m.x > -400);
 
-      // Update Entities & Collisions
-      for (let i = st.entities.length - 1; i >= 0; i--) {
-        const ent = st.entities[i];
-        
-        // Magnet effect
+        // Update Entities & Collisions
+        for (let i = st.entities.length - 1; i >= 0; i--) {
+          const ent = st.entities[i];
+          
+          if (ent.type === 'player-projectile') {
+             ent.x += 800 * dt;
+             // Check if it hits the boss
+             if (st.bossActive && !ent.dead) {
+                const canvasWidth = containerRef.current ? containerRef.current.clientWidth : window.innerWidth;
+                const bossX = canvasWidth - 150;
+                if (ent.x + ent.width > bossX) {
+                   ent.dead = true;
+                   st.bossHp--;
+                   st.effects.push({ x: bossX, y: 100, timer: 0.3, text: 'BAM!' });
+                   st.score += 500;
+                   if (st.bossHp <= 0) {
+                      st.bossActive = false;
+                      st.nextBossDistance = st.distance + 2000;
+                      st.effects.push({ x: bossX, y: 100, timer: 1.0, text: 'BOSS DEFEATED!' });
+                      st.score += 5000;
+                      st.entities = st.entities.filter(e => e.type !== 'obstacle');
+                   }
+                }
+             }
+             if (ent.x > window.innerWidth || ent.dead) {
+                st.entities.splice(i, 1);
+             }
+             continue; // skip rest of collision logic for projectile
+          }
+
+          // Magnet effect
         if (st.player.magnetTimer > 0 && ent.type === 'coin' && !ent.dead) {
           const dx = st.player.x - ent.x;
           const dy = st.player.y - ent.y;
@@ -656,6 +706,7 @@ export default function Game({ onGameOver, currentSkinId }) {
              {ent.type.startsWith('enemy') && <Enemy type={ent.type.split('-')[1]} />}
              {ent.type === 'coin' && <Coin />}
              {ent.type.startsWith('powerup') && <PowerUp type={ent.type.split('-')[1]} />}
+             {ent.type === 'player-projectile' && <div className="w-[40px] h-[10px] bg-cyan-400 rounded-full shadow-[0_0_10px_cyan]"></div>}
           </div>
         ))}
 

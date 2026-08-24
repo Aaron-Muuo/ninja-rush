@@ -16,8 +16,8 @@
 - [x] Basic collision detection
 - [x] Score and increasing speed
 - [x] Game Over and Restart logic
-- [ ] Add SEO tags (author, title) in index.html
-- [ ] Add Developer Easter Egg console log splash
+- [x] Add SEO tags (author, title) in index.html
+- [x] Add Developer Easter Egg console log splash
 
 ## Phase 2 - Core Gameplay (Completed)
 - [x] Enemies implementation
@@ -50,4 +50,3 @@
 - [ ] Mobile optimization and touch controls
 - [ ] Accessibility features (contrast, motion toggle)
 - [ ] Performance optimization
-- [ ] Brand Identity: "Crafted by Muuo Creatives" badge linking to website

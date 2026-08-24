@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Game from './components/Game/Game';
+import Ninja from './components/Game/Ninja';
 import { loadGameData, saveGameData, calculateLevel, SKINS, MISSIONS } from './utils/storage';
 import './index.css';
 
@@ -14,6 +15,20 @@ function App() {
   useEffect(() => {
     saveGameData(gameData);
   }, [gameData]);
+
+  const handleResetProgress = () => {
+    const freshData = {
+      xp: 0,
+      level: 1,
+      coins: 0,
+      highScore: 0,
+      unlockedSkins: ['default'],
+      currentSkin: 'default',
+      completedMissions: []
+    };
+    setGameData(freshData);
+    saveGameData(freshData);
+  };
 
   const handleGameOver = (finalScore, runCoins) => {
     setScore(finalScore);
@@ -91,7 +106,18 @@ function App() {
       )}
 
       {gameState === 'menu' && (
-        <div className="text-center w-full max-w-md bg-transparent p-8 border-2 border-white backdrop-blur-md z-10 rounded-none">
+        <>
+          <button 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to completely wipe all your progress, coins, and skins? This cannot be undone.")) {
+                handleResetProgress();
+              }
+            }}
+            className="absolute top-4 left-4 z-50 px-3 py-1 bg-red-900/50 text-red-300 border border-red-500 rounded text-sm hover:bg-red-800 transition-colors cursor-pointer"
+          >
+            Reset Progress
+          </button>
+          <div className="text-center w-full max-w-md bg-transparent p-8 border-2 border-white backdrop-blur-md z-10 rounded-none">
           <div className="mb-8">
             <h1 className="text-7xl font-black text-white tracking-widest uppercase font-sans">
               NINJA
@@ -126,16 +152,16 @@ function App() {
           <p className="text-gray-300 mt-6 text-sm mb-4">
             Press UP to Jump | DOWN to Drop | SPACE to Attack
           </p>
-          
-          <a 
-            href="https://muuocreatives.co.ke" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block mt-4 px-4 py-2 bg-transparent border-2 border-gray-500 text-xs text-gray-400 hover:text-white hover:border-white transition-colors cursor-pointer"
-          >
-            Crafted by <span className="text-white font-bold">Muuo Creatives</span>
-          </a>
-        </div>
+                    <a 
+              href="https://muuocreatives.co.ke" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block mt-4 px-4 py-2 bg-transparent border-2 border-gray-500 text-xs text-gray-400 hover:text-white hover:border-white transition-colors cursor-pointer"
+            >
+              Crafted by <span className="text-white font-bold">Muuo Creatives</span>
+            </a>
+          </div>
+        </>
       )}
 
       {gameState === 'shop' && (
@@ -148,10 +174,10 @@ function App() {
                const isEquipped = gameData.currentSkin === skin.id;
                return (
                  <div key={skin.id} className={`p-4 border-2 flex flex-col items-center ${isEquipped ? 'border-yellow-400 bg-yellow-900/30' : 'border-gray-600 bg-gray-800'}`}>
-                   <div className="w-16 h-24 relative mb-4">
-                     <div className={`absolute bottom-0 w-full h-[80%] ${skin.color} rounded-sm`}>
-                        <div className={`absolute top-2 w-full h-4 ${skin.accent}`}></div>
-                     </div>
+                   <div className="w-16 h-24 relative mb-4 flex items-center justify-center transform scale-[1.5]">
+                      <div className="relative w-10 h-16">
+                         <Ninja skinId={skin.id} />
+                      </div>
                    </div>
                    <h3 className="text-xl font-bold mb-2">{skin.name}</h3>
                    {isEquipped ? (

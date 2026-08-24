@@ -113,7 +113,7 @@ export default function Game({ onGameOver, currentSkinId }) {
             st.effects.push({ x: bossX, y: 100, timer: 1.0, text: 'BOSS DEFEATED!' });
             st.score += 5000;
             // Clear projectiles
-            st.entities = st.entities.filter(e => e.type !== 'obstacle');
+            st.entities.forEach(e => { if(e.type === 'obstacle') e.dead = true; });
          }
       }
     }
@@ -249,6 +249,21 @@ export default function Game({ onGameOver, currentSkinId }) {
         st.player.y = 120; // force hover in air
         st.player.velocityY = 0;
         st.player.isJumping = true; // animations might use this
+        
+        if (st.player.gliderTimer <= 0) {
+           // Glider just ended! Clear out landing zone obstacles
+           st.effects.push({ x: st.player.x, y: st.player.y, timer: 0.8, text: 'GLIDER EXPIRING!' });
+           st.entities.forEach(ent => {
+              if ((ent.type === 'obstacle' || ent.type.startsWith('enemy')) && !ent.dead) {
+                 const dist = ent.x - st.player.x;
+                 // Destroy anything up to 450px ahead
+                 if (dist > -50 && dist < 450) {
+                    ent.dead = true;
+                    st.effects.push({ x: ent.x, y: ent.y, timer: 0.5, text: 'CLEARED!' });
+                 }
+              }
+           });
+        }
       } else if (st.player.isJumping || st.player.y > 0) {
         st.player.velocityY -= GAME_CONFIG.gravity * dt;
         st.player.y += st.player.velocityY * dt;
@@ -376,7 +391,7 @@ export default function Game({ onGameOver, currentSkinId }) {
                       st.nextBossDistance = st.distance + 2000;
                       st.effects.push({ x: bossX, y: 100, timer: 1.0, text: 'BOSS DEFEATED!' });
                       st.score += 5000;
-                      st.entities = st.entities.filter(e => e.type !== 'obstacle');
+                      st.entities.forEach(e => { if(e.type === 'obstacle') e.dead = true; });
                    }
                 }
              }
@@ -492,15 +507,26 @@ export default function Game({ onGameOver, currentSkinId }) {
 
     const playerEl = document.getElementById('player-ninja');
     if (playerEl) {
-      playerEl.style.transform = `translate(${p.x}px, -${p.y}px)`;
+      let rotation = 0;
+      let bobY = 0;
+      if (p.gliderTimer > 0) {
+        rotation = 75; // fly horizontally like superman
+      } else if (!p.isJumping) {
+        // Run bobbing
+        bobY = Math.abs(Math.sin(st.distance / 30)) * 5;
+      }
+      playerEl.style.transform = `translate(${p.x}px, -${p.y + bobY}px) rotate(${rotation}deg)`;
       
       // Update weapon arm if attacking
       const sword = playerEl.querySelector('.sword-arm');
       if (sword) {
          if (p.isAttacking) {
-             sword.style.transform = 'rotate(90deg)';
+             sword.style.transform = 'translate(18px, 12px) rotate(90deg)'; // Wait, top goes right. 
+             sword.style.transform = 'translate(18px, 8px) rotate(-90deg)';
+             sword.style.zIndex = '30';
          } else {
-             sword.style.transform = 'rotate(-45deg)';
+             sword.style.transform = 'translate(0px, 0px) rotate(-45deg)';
+             sword.style.zIndex = '-10';
          }
       }
 
@@ -512,17 +538,26 @@ export default function Game({ onGameOver, currentSkinId }) {
       
       const legL = playerEl.querySelector('.leg-l');
       const legR = playerEl.querySelector('.leg-r');
+      const armL = playerEl.querySelector('.arm-l');
+      const armR = playerEl.querySelector('.arm-r');
       const headband = playerEl.querySelector('.headband');
       
       if (legL && legR) {
-        if (p.isJumping) {
+        if (p.isJumping || p.gliderTimer > 0) {
           legL.style.transform = 'rotate(-45deg)';
           legR.style.transform = 'rotate(12deg)';
-          if (headband) headband.classList.remove('animate-pulse');
+          if (armL && armR) {
+            armL.style.transform = 'rotate(150deg)';
+            armR.style.transform = 'rotate(120deg)';
+          }
         } else {
-          legL.style.transform = 'rotate(12deg)';
-          legR.style.transform = 'rotate(-12deg)';
-          if (headband) headband.classList.add('animate-pulse');
+          const swing = Math.sin(st.distance / 30) * 45;
+          legL.style.transform = `rotate(${swing}deg)`;
+          legR.style.transform = `rotate(${-swing}deg)`;
+          if (armL && armR) {
+            armL.style.transform = `rotate(${-swing * 0.8}deg)`;
+            armR.style.transform = `rotate(${swing * 0.8}deg)`;
+          }
         }
       }
     }
